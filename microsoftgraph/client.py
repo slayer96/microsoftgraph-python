@@ -284,7 +284,7 @@ class Client(object):
 
     # Calendar
     @token_required
-    def get_me_events(self):
+    def get_me_events(self, params=None):
         """Get a list of event objects in the user's mailbox. The list contains single instance meetings and
         series masters.
 
@@ -294,7 +294,32 @@ class Client(object):
             A dict.
 
         """
-        return self._get(self.base_url + 'me/events')
+        return self._get(self.base_url + 'me/events', params=params)
+
+    @token_required
+    def get_me_event_by_id(self, event_id, params=None):
+        """Get a list of event objects by id.
+
+        Currently, this operation returns event bodies in only HTML format.
+
+        Returns:
+            A dict.
+        """
+
+        return self._get(self.base_url + 'me/events/{}'.format(event_id), params=params)
+
+    @token_required
+    def get_calendarview_events(self, params):
+        """Get a list of event objects in the user's mailbox. The list contains single instance meetings and
+        series masters.
+
+        Currently, this operation returns event bodies in only HTML format.
+
+        Returns:
+            A dict.
+
+                """
+        return self._get(self.base_url + 'me/calendarview', params=params)
 
     @token_required
     def create_calendar_event(self, subject, content, start_datetime, start_timezone, end_datetime, end_timezone,
@@ -318,14 +343,51 @@ class Client(object):
             A dict.
 
         """
-        # TODO: attendees
-        # attendees_list = [{
-        #     "emailAddress": {
-        #         "address": a['attendees_email'],
-        #         "name": a['attendees_name']
-        #     },
-        #     "type": a['attendees_type']
-        # } for a in kwargs['attendees']]
+        body = self._prepare_event_body(subject, content, start_datetime, start_timezone, end_datetime,
+                                        end_timezone, location, **kwargs)
+        url = 'me/calendars/{}/events'.format(calendar) if calendar is not None else 'me/events'
+        return self._post(self.base_url + url, json=body)
+
+    @token_required
+    def update_calendar_event(self, event_id, subject, content, start_datetime, start_timezone, end_datetime,
+                              end_timezone, location, calendar=None, **kwargs):
+        """
+           Update a calendar event.
+
+           Args:
+               event_id: event unique id, string
+               subject: subject of event, string
+               content: content of event, string
+               start_datetime: in the format of 2017-09-04T11:00:00, dateTimeTimeZone string
+               start_timezone: in the format of Pacific Standard Time, string
+               end_datetime: in the format of 2017-09-04T11:00:00, dateTimeTimeZone string
+               end_timezone: in the format of Pacific Standard Time, string
+               location:   string
+               attendees: list of dicts of the form:
+                           {"emailAddress": {"address": a['attendees_email'],"name": a['attendees_name']}
+               calendar:
+
+           Returns:
+               A dict.
+
+               """
+        body = self._prepare_event_body(subject, content, start_datetime, start_timezone, end_datetime,
+                                        end_timezone,
+                                        location, **kwargs)
+        url = 'me/calendars/{}/events/{}'.format(calendar, event_id) if calendar is not None else 'me/events/{}'.format(
+            event_id)
+        return self._patch(self.base_url + url, json=body)
+
+    @staticmethod
+    def _prepare_event_body(subject, content, start_datetime, start_timezone, end_datetime, end_timezone,
+                            location,  **kwargs):
+        attendees_list = [{
+            "emailAddress": {
+                "address": a['email'],
+                "name": a['displayName']
+            },
+            #     "type": a['attendees_type']
+        } for a in kwargs.get('attendees', [])]
         body = {
             "subject": subject,
             "body": {
@@ -343,10 +405,15 @@ class Client(object):
             "location": {
                 "displayName": location
             },
-            # "attendees": attendees_list
+            "attendees": attendees_list
         }
-        url = 'me/calendars/{}/events'.format(calendar) if calendar is not None else 'me/events'
-        return self._post(self.base_url + url, json=body)
+        return body
+
+    @token_required
+    def delete_calendar_event(self, event_id, calendar=None):
+        url = 'me/calendars/{}/events/{}'.format(calendar, event_id) if calendar is not None else 'me/events/{}'.format(
+            event_id)
+        return self._delete(self.base_url + url)
 
     @token_required
     def create_calendar(self, name):
@@ -501,22 +568,28 @@ class Client(object):
 
     @token_required
     def excel_get_specific_worksheet(self, item_id, worksheet_id, **kwargs):
-        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}".format(item_id, quote_plus(worksheet_id))
+        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}".format(item_id, quote_plus(
+            worksheet_id))
         return self._get(url, **kwargs)
 
     @token_required
     def excel_update_worksheet(self, item_id, worksheet_id, **kwargs):
-        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}".format(item_id, quote_plus(worksheet_id))
+        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}".format(item_id, quote_plus(
+            worksheet_id))
         return self._patch(url, **kwargs)
 
     @token_required
     def excel_get_charts(self, item_id, worksheet_id, params=None, **kwargs):
-        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/charts".format(item_id, quote_plus(worksheet_id))
+        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/charts".format(item_id,
+                                                                                                          quote_plus(
+                                                                                                              worksheet_id))
         return self._get(url, params=params, **kwargs)
 
     @token_required
     def excel_add_chart(self, item_id, worksheet_id, **kwargs):
-        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/charts/add".format(item_id, quote_plus(worksheet_id))
+        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/charts/add".format(item_id,
+                                                                                                              quote_plus(
+                                                                                                                  worksheet_id))
         return self._post(url, **kwargs)
 
     @token_required
@@ -531,12 +604,14 @@ class Client(object):
 
     @token_required
     def excel_add_column(self, item_id, worksheets_id, table_id, **kwargs):
-        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/tables/{2}/columns".format(item_id, quote_plus(worksheets_id), table_id)
+        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/tables/{2}/columns".format(
+            item_id, quote_plus(worksheets_id), table_id)
         return self._post(url, **kwargs)
 
     @token_required
     def excel_add_row(self, item_id, worksheets_id, table_id, **kwargs):
-        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/tables/{2}/rows".format(item_id, quote_plus(worksheets_id), table_id)
+        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/tables/{2}/rows".format(
+            item_id, quote_plus(worksheets_id), table_id)
         return self._post(url, **kwargs)
 
     @token_required
@@ -556,15 +631,18 @@ class Client(object):
 
     @token_required
     def excel_get_range(self, item_id, worksheets_id, **kwargs):
-        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/range(address='A1:B2')".format(item_id, quote_plus(worksheets_id))
+        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/range(address='A1:B2')".format(
+            item_id, quote_plus(worksheets_id))
         return self._get(url, **kwargs)
 
     @token_required
     def excel_update_range(self, item_id, worksheets_id, **kwargs):
-        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/range(address='A1:B2')".format(item_id, quote_plus(worksheets_id))
+        url = "https://graph.microsoft.com/beta/me/drive/items/{0}/workbook/worksheets/{1}/range(address='A1:B2')".format(
+            item_id, quote_plus(worksheets_id))
         return self._patch(url, **kwargs)
 
     def _get(self, url, **kwargs):
+        print('kwargs', kwargs)
         return self._request('GET', url, **kwargs)
 
     def _post(self, url, **kwargs):
