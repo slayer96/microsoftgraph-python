@@ -642,7 +642,6 @@ class Client(object):
         return self._patch(url, **kwargs)
 
     def _get(self, url, **kwargs):
-        print('kwargs', kwargs)
         return self._request('GET', url, **kwargs)
 
     def _post(self, url, **kwargs):
