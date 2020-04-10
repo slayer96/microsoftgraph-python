@@ -297,6 +297,11 @@ class Client(object):
         return self._get(self.base_url + 'me/events', params=params)
 
     @token_required
+    def track_changes_events(self, params=None):
+
+        return self._get(self.base_url + 'me/calendarView/delta', params=params)
+
+    @token_required
     def get_me_event_by_id(self, event_id, params=None):
         """Get a list of event objects by id.
 
