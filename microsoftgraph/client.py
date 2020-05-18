@@ -665,10 +665,16 @@ class Client(object):
         _headers = {
             'Accept': 'application/json',
         }
-        if self.office365:
-            _headers['Authorization'] = 'Bearer ' + self.office365_token['access_token']
-        else:
-            _headers['Authorization'] = 'Bearer ' + self.token['access_token']
+        try:
+            if self.office365:
+                _headers['Authorization'] = 'Bearer ' + self.office365_token['access_token']
+            else:
+                _headers['Authorization'] = 'Bearer ' + self.token['access_token']
+        except TypeError:
+            if self.office365:
+                _headers['Authorization'] = 'Bearer ' + self.office365_token
+            else:
+                _headers['Authorization'] = 'Bearer ' + self.token
         if headers:
             _headers.update(headers)
         if 'files' not in kwargs:
